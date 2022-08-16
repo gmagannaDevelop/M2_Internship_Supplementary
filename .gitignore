@@ -6,6 +6,7 @@ playground
 # intermediate data (might be uploaded as artifacts or integrated)
 # using github actions
 data
+datasets
 
 # editor files
 .vscode
