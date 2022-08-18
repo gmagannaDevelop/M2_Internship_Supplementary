@@ -2,6 +2,8 @@
 
 # tinkering
 playground
+**/ignore_*
+**/*_ignore
 
 # intermediate data (might be uploaded as artifacts or integrated)
 # using github actions
