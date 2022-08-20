@@ -82,7 +82,8 @@ for k, v in spec.bonesis.items():
 
 
 # pylint: disable=no-member, pointless-statement
-n_attempts_before_success = 0
+# n_attempts_before_success = 0
+n_abs = 0 # shorthand for n_attempts_before_success
 new_diversity = []
 rng = np.random.default_rng(seed)
 while not new_diversity:
@@ -110,12 +111,22 @@ while not new_diversity:
         new_diversity.append((i, bn, cfg))
     if not new_diversity:
         seed = int(rng.integers(1, 20221231))
-        n_attempts_before_success += 1
+        n_abs += 1
     else:
         print(f"Found {len(new_diversity)} diverse boolean networks")
 
 # pylint: enable=no-member, pointless-statement
 
+dom_kwargs = spec.influence_graph
+dom_kwargs.update({"seed": seed})
+if not save_experiment(new_diversity, dom_kwargs, experiment_dir):
+    raise IOError(
+        f"Could not save experiment to {data_dir.relative_to(root).as_posix()}"
+    )
+print(f"Results saved to `{experiment_dir.relative_to(root).as_posix()}`")
+
+with open(experiment_dir / "notes.txt", "a") as f:
+    f.write(f"Found {len(new_diversity)} Boolean Networks after {n_abs} failed attempts\n")
 
 diversity_metrics_df = compute_multiple_cfg_metrics(new_diversity)
 diversity_metrics_df["phi_distance"] = -1.0 * diversity_metrics_df["phi_coeff"]
@@ -141,6 +152,9 @@ _resumed_sorted = _resumed.sort_values(
 )
 _best_candidate = _resumed_sorted.index[0]
 
+with open(experiment_dir / "notes.txt", "a") as f:
+    f.write(f"Best candidate is bn #{_best_candidate}\n")
+
 
 candidate_cfgs = new_diversity[_best_candidate][-1]
 candidate_cfgs_df = pd.DataFrame(candidate_cfgs)
@@ -163,21 +177,9 @@ full_traj_df = labelled_trajectory_from_reachability_constraints(
 )
 print("Done")
 
-# TODO: move this before the trajectory and attractor statistics generation
-dom_kwargs = spec.influence_graph
-dom_kwargs.update({"seed": seed})
-if not save_experiment(new_diversity, dom_kwargs, experiment_dir):
-    raise IOError(
-        f"Could not save experiment to {data_dir.relative_to(root).as_posix()}"
-    )
-print(f"Results saved to `{experiment_dir.relative_to(root).as_posix()}`")
-
-
 full_traj_df.to_csv(experiment_dir / "full_trace.csv")
 attractor_statistics_df.to_csv(experiment_dir / "attractor_statistics.csv")
 diversity_metrics_df.to_csv(experiment_dir / "configuration_diversity_metrics.csv")
 _resumed_sorted.to_csv(experiment_dir / "resumed_configuration_diversity_metrics.csv")
 diversity_plot.save((experiment_dir / "diversity_plot.png").as_posix())
 
-with open(experiment_dir / "notes.txt", "a") as f:
-    f.write(f"Best candidate is bn #{_best_candidate}\n")
